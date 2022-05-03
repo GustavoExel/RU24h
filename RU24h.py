@@ -188,8 +188,8 @@ class Ui_MainWindow(object):
                 user(id_)
                 passwd(password)
                 login()
-                for m in [1, 2]:     # [Almoço, Jantar]
-                    for d in [1, 2]: # [Hoje, Amanhã]
+                for d in [1, 2]:     # [Hoje, Amanhã]
+                    for m in [1, 2]: # [Almoço, Jantar]
                         menu()
                         meal(m)
                         date(d)
@@ -198,6 +198,7 @@ class Ui_MainWindow(object):
                 bk2login()
         except Exception as f:
             self.raiseError( str(f) )
+        self.driver.quit()
 
     def raiseError(self, text=None):
         msg = QtWidgets.QMessageBox()
