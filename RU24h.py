@@ -1,4 +1,8 @@
-"""COLOCAR UM ERROR HANDLING!!!! (COM MESSAGEBOXES E NÃO RAISES QUE CRASHA O PROGRAMA)"""
+"""
+- Colocar um try pra se tentar agendar almoço/janta e não der mais (index error)
+- Caso o arquivo key seja apagado, mensagem de erro: arquivo corrompido, deseja reiniciar os dados?
+- Apagar geckodriver.log
+"""
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 # import selenium
