@@ -161,8 +161,16 @@ class Ui_MainWindow(object):
             self.write_data()
 
     def get_key(self):
+        if not os.path.exists(self.KEY_PATH):
+            self.generate_key()
+
         with open(self.KEY_PATH, "rb") as f:
             return pickle.load(f)
+
+    def generate_key(self):
+        __key = "".join(random.choice(string.ascii_letters + string.digits + string.punctuation) for i in range(128))
+        with open(self.KEY_PATH, "wb") as f:
+            pickle.dump(__key, f)
 
     def read_data(self):
         if not os.path.isfile(self.DATA_PATH):
@@ -170,7 +178,7 @@ class Ui_MainWindow(object):
             return
 
         tmp = f"{self.DATA_PATH}_temp"
-        __key = "abc" # self.get_key()
+        __key = self.get_key()
         
         pyAesCrypt.decryptFile(self.DATA_PATH, tmp, __key)
         with open(tmp, "rb") as f:
@@ -178,15 +186,14 @@ class Ui_MainWindow(object):
         os.remove(tmp)
 
     def write_data(self):
-        tmp = f"{self.DATA_PATH}_temp"
-        __key = "abc" # self.get_key()
-        
         if not os.path.exists(self.DATA_DIR):
             os.mkdir(self.DATA_DIR)
             os.system(f"attrib +h {self.DATA_DIR}")
-            __key = "".join(random.choice(string.ascii_letters + string.digits + string.punctuation) for i in range(128))
-            with open(self.KEY_PATH, "wb") as f:
-                pickle.dump(__key, f)
+            self.generate_key()
+
+        tmp = f"{self.DATA_PATH}_temp"
+        __key = self.get_key()
+        
         with open(tmp, "wb") as f:
             pickle.dump(self.data, f)
         pyAesCrypt.encryptFile(tmp, self.DATA_PATH, __key)
