@@ -1,12 +1,15 @@
+"""COLOCAR UM ERROR HANDLING!!!! (COM MESSAGEBOXES E NÃO RAISES QUE CRASHA O PROGRAMA)"""
+
 from PyQt5 import QtCore, QtGui, QtWidgets
-import selenium
-import pickle
-import os
+# import selenium
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
+import pickle
+import os
+import sys
 
 class Ui_MainWindow(object):
     DATA_PATH = "data"
@@ -138,6 +141,9 @@ class Ui_MainWindow(object):
             self.writeData()
 
         msg.exec_()
+        self.nameField.clear()
+        self.idField.clear()
+        self.passwordField.clear()
 
     def deleteUser(self):
         selectedItems = self.userList.selectedItems()
@@ -162,51 +168,56 @@ class Ui_MainWindow(object):
             pickle.dump(self.data, f)
     
     def schedule(self):
-        self.driver = webdriver.Firefox(executable_path=self.DRIVER_PATH)
-        url = "https://sgpru.sistemas.ufsc.br/agendamento/home.xhtml"
-        self.driver.get(url)
+        try:
+            self.driver = webdriver.Firefox(executable_path=self.DRIVER_PATH)
+            url = "https://sgpru.sistemas.ufsc.br/agendamento/home.xhtml"
+            self.driver.get(url)
 
-        find = lambda by,value: WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((by, value)))
-        user     = lambda u: find(By.ID, "username").send_keys(u)
-        passwd   = lambda p: find(By.ID, "password").send_keys(p)
-        login    = lambda:   find(By.NAME, "submit").click()
-        menu     = lambda:   find(By.XPATH, "/html/body/div[1]/div[2]/table/tbody/tr[2]/td/table/tbody/tr/td[1]/div/form/div/div[2]/div/ul/li[2]/a/span").click()
-        meal     = lambda i: Select(find(By.ID, "agendamentoForm:refeicao")).select_by_index(i)
-        date     = lambda i: Select(find(By.ID, "agendamentoForm:dtRefeicao")).select_by_index(i)
-        schedule = lambda:   find(By.XPATH, "/html/body/div[1]/div[2]/table/tbody/tr[2]/td/table/tbody/tr/td[2]/div/div/div/div/table/tbody/tr/td/table/tbody/tr[2]/td[2]/div/div/form/div/table/tbody/tr[8]/td[2]/button/span[2]").click()
-        quit     = lambda:   find(By.XPATH, "/html/body/div[1]/div[1]/div/form/table/tbody/tr/td/a[2]").click()
-        bk2login = lambda:   find(By.XPATH, "/html/body/div[1]/div[2]/table/tbody/tr/td/table/tbody/tr[2]/td[2]/div/div/div[2]/div[2]/table/tbody/tr[1]/td/p/a").click()
-        
-        for name, id_, password in self.data:
-            user(id_)
-            passwd(password)
-            login()
-            for m in [1, 2]: # [Almoço, Jantar]
-                for d in [1, 2]: # [Hoje, Amanhã]
-                    menu()
-                    meal(1)
-                    date(1)
-                    schedule()
-            quit()
-            bk2login()
+            find = lambda by,value: WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((by, value)))
+            user     = lambda u: find(By.ID, "username").send_keys(u)
+            passwd   = lambda p: find(By.ID, "password").send_keys(p)
+            login    = lambda:   find(By.NAME, "submit").click()
+            menu     = lambda:   find(By.XPATH, "/html/body/div[1]/div[2]/table/tbody/tr[2]/td/table/tbody/tr/td[1]/div/form/div/div[2]/div/ul/li[2]/a/span").click()
+            meal     = lambda i: Select(find(By.ID, "agendamentoForm:refeicao")).select_by_index(i)
+            date     = lambda i: Select(find(By.ID, "agendamentoForm:dtRefeicao")).select_by_index(i)
+            schedule = lambda:   find(By.XPATH, "/html/body/div[1]/div[2]/table/tbody/tr[2]/td/table/tbody/tr/td[2]/div/div/div/div/table/tbody/tr/td/table/tbody/tr[2]/td[2]/div/div/form/div/table/tbody/tr[8]/td[2]/button/span[2]").click()
+            quit     = lambda:   find(By.XPATH, "/html/body/div[1]/div[1]/div/form/table/tbody/tr/td/a[2]").click()
+            bk2login = lambda:   find(By.XPATH, "/html/body/div[1]/div[2]/table/tbody/tr/td/table/tbody/tr[2]/td[2]/div/div/div[2]/div[2]/table/tbody/tr[1]/td/p/a").click()
+            
+            for name, id_, password in self.data:
+                user(id_)
+                passwd(password)
+                login()
+                for m in [1, 2]:     # [Almoço, Jantar]
+                    for d in [1, 2]: # [Hoje, Amanhã]
+                        menu()
+                        meal(m)
+                        date(d)
+                        schedule()
+                quit()
+                bk2login()
+        except Exception as f:
+            self.raiseError( str(f) )
 
-"""
-nameField
-idField
-passwordField
-addUserButton
-userList
-deleteUserButton
-scheduleButton
-"""
+    def raiseError(self, text=None):
+        msg = QtWidgets.QMessageBox()
+        msg.setWindowTitle("RU24h")
+        msg.setWindowIcon(QtGui.QIcon(self.ICON_PATH))
+        msg.setText("Um erro foi encontrado!" + ("" if text is None else "\n"+text) )
+        msg.setIcon(QtWidgets.QMessageBox.Critical)
+        msg.exec_()
 
 if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    MainWindow = QtWidgets.QMainWindow()
-    ui = Ui_MainWindow()
-    ui.setupUi(MainWindow)
-    MainWindow.show()
-    sys.exit(app.exec_())
-    # ui.readData()
-    # ui.schedule()
+    # Schedule silently
+    if len(sys.argv)>1 and sys.argv[1]=="-s":
+        ui = Ui_MainWindow()
+        ui.readData()
+        ui.schedule()
+    # Open GUI
+    else:
+        app = QtWidgets.QApplication(sys.argv)
+        MainWindow = QtWidgets.QMainWindow()
+        ui = Ui_MainWindow()
+        ui.setupUi(MainWindow)
+        MainWindow.show()
+        sys.exit(app.exec_())
