@@ -7,16 +7,18 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
+import pyAesCrypt
 import pickle
 import os
 import sys
 
 class Ui_MainWindow(object):
-    DATA_PATH = "data"
+    DATA_PATH = ".data/data"
     DRIVER_PATH = "geckodriver.exe"
     ICON_PATH = "icon.png"
+    KEY_PATH = ".data/key"
 
-    def setupUi(self, MainWindow):
+    def setup_ui(self, MainWindow):
         MainWindow.setObjectName("RU24h")
         MainWindow.resize(800, 414)
         MainWindow.setWindowIcon(QtGui.QIcon(self.ICON_PATH))
@@ -90,14 +92,14 @@ class Ui_MainWindow(object):
         self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
 
-        self.setButtons()
-        self.readData()
-        self.populateUserList()
+        self.set_buttons()
+        self.read_data()
+        self.populate_user_list()
 
-        self.retranslateUi(MainWindow)
+        self.retranslate_ui(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
-    def retranslateUi(self, MainWindow):
+    def retranslate_ui(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "RU24h"))
         self.groupBox_2.setTitle(_translate("MainWindow", "Gerenciar usuários"))
@@ -109,16 +111,16 @@ class Ui_MainWindow(object):
         self.addUserButton.setText(_translate("MainWindow", "Adicionar"))
         self.scheduleButton.setText(_translate("MainWindow", "Agendar Refeições"))
 
-    def setButtons(self):
-        self.addUserButton.clicked.connect(self.addUser)
-        self.deleteUserButton.clicked.connect(self.deleteUser)
+    def set_buttons(self):
+        self.addUserButton.clicked.connect(self.add_user)
+        self.deleteUserButton.clicked.connect(self.delete_user)
         self.scheduleButton.clicked.connect(self.schedule)
 
-    def populateUserList(self):
+    def populate_user_list(self):
         for name, _, _ in self.data:
             self.userList.addItem(name)
 
-    def addUser(self):
+    def add_user(self):
         name, id_, password = self.nameField.text(), self.idField.text(), self.passwordField.text()
 
         msg = QtWidgets.QMessageBox()
@@ -138,34 +140,48 @@ class Ui_MainWindow(object):
 
             self.userList.addItem(name)
             self.data.append((name, id_, password))
-            self.writeData()
+            self.write_data()
 
         msg.exec_()
         self.nameField.clear()
         self.idField.clear()
         self.passwordField.clear()
 
-    def deleteUser(self):
+    def delete_user(self):
         selectedItems = self.userList.selectedItems()
         if selectedItems:
             deleted_name = selectedItems[0].text()
             deleted_index = list(map(lambda t:t[0], self.data)).index(deleted_name)
             self.data.pop(deleted_index)
             self.userList.clear()
-            self.populateUserList()
-            self.writeData()
+            self.populate_user_list()
+            self.write_data()
 
-    def readData(self):
+    def get_key(self):
+        with open(self.KEY_PATH, "rb") as f:
+            return pickle.load(f)
+
+    def read_data(self):
         if not os.path.isfile(self.DATA_PATH):
             self.data = []
             return
 
-        with open(self.DATA_PATH, "rb") as f:
+        tmp = f"{self.DATA_PATH}_temp"
+        __key = self.get_key()
+        
+        pyAesCrypt.decryptFile(self.DATA_PATH, tmp, __key)
+        with open(tmp, "rb") as f:
             self.data = pickle.load(f)
+        os.remove(tmp)
 
-    def writeData(self):
-        with open(self.DATA_PATH, "wb") as f:
+    def write_data(self):
+        tmp = f"{self.DATA_PATH}_temp"
+        __key = self.get_key()
+        
+        with open(tmp, "wb") as f:
             pickle.dump(self.data, f)
+        pyAesCrypt.encryptFile(tmp, self.DATA_PATH, __key)
+        os.remove(tmp)
     
     def schedule(self):
         try:
@@ -197,10 +213,10 @@ class Ui_MainWindow(object):
                 quit()
                 bk2login()
         except Exception as f:
-            self.raiseError( str(f) )
+            self.raise_error( str(f) )
         self.driver.quit()
 
-    def raiseError(self, text=None):
+    def raise_error(self, text=None):
         msg = QtWidgets.QMessageBox()
         msg.setWindowTitle("RU24h")
         msg.setWindowIcon(QtGui.QIcon(self.ICON_PATH))
@@ -212,13 +228,13 @@ if __name__ == "__main__":
     # Schedule silently
     if len(sys.argv)>1 and sys.argv[1]=="-s":
         ui = Ui_MainWindow()
-        ui.readData()
+        ui.read_data()
         ui.schedule()
     # Open GUI
     else:
         app = QtWidgets.QApplication(sys.argv)
         MainWindow = QtWidgets.QMainWindow()
         ui = Ui_MainWindow()
-        ui.setupUi(MainWindow)
+        ui.setup_ui(MainWindow)
         MainWindow.show()
         sys.exit(app.exec_())
