@@ -9,10 +9,13 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 import pyAesCrypt
 import pickle
+import string
+import random
 import os
 import sys
 
 class Ui_MainWindow(object):
+    DATA_DIR = ".data"
     DATA_PATH = ".data/data"
     DRIVER_PATH = "geckodriver.exe"
     ICON_PATH = "icon.png"
@@ -167,7 +170,7 @@ class Ui_MainWindow(object):
             return
 
         tmp = f"{self.DATA_PATH}_temp"
-        __key = self.get_key()
+        __key = "abc" # self.get_key()
         
         pyAesCrypt.decryptFile(self.DATA_PATH, tmp, __key)
         with open(tmp, "rb") as f:
@@ -176,8 +179,14 @@ class Ui_MainWindow(object):
 
     def write_data(self):
         tmp = f"{self.DATA_PATH}_temp"
-        __key = self.get_key()
+        __key = "abc" # self.get_key()
         
+        if not os.path.exists(self.DATA_DIR):
+            os.mkdir(self.DATA_DIR)
+            os.system(f"attrib +h {self.DATA_DIR}")
+            __key = "".join(random.choice(string.ascii_letters + string.digits + string.punctuation) for i in range(128))
+            with open(self.KEY_PATH, "wb") as f:
+                pickle.dump(__key, f)
         with open(tmp, "wb") as f:
             pickle.dump(self.data, f)
         pyAesCrypt.encryptFile(tmp, self.DATA_PATH, __key)
