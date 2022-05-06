@@ -226,10 +226,13 @@ class Ui_MainWindow(object):
                 login()
                 for d in [1, 2]:     # [Hoje, Amanhã]
                     for m in [1, 2]: # [Almoço, Jantar]
-                        menu()
-                        meal(m)
-                        date(d)
-                        schedule()
+                        try:
+                            menu()
+                            meal(m)
+                            date(d)
+                            schedule()
+                        except:
+                            pass
                 quit()
                 bk2login()
         except Exception as f:
